@@ -1,22 +1,18 @@
-class Sattr
+require "msgpack"
+
+class Satt
   class InvalidArgument < RuntimeError; end
 
-  def initialize(serializer=nil)
-    @serializer = serializer || MessagePack
+  def self.dump(obj)
+    MessagePack.dump(Satt::Primitive::Dumper.new.dump(obj))
   end
 
-  def dump(obj)
-    dumper = Sattr::Primitive::Dumper.new()
-    @serializer.dump(dumper.dump(obj))
-  end
-
-  def load(blob)
-    loader = Sattr::Primitive::Loader.new()
-    loader.load(@serializer.load(blob))
+  def self.load(blob)
+    Satt::Primitive::Loader.new.load(MessagePack.load(blob))
   end
 end
 
-class Sattr
+class Satt
   class Primitive
     NOT_DUMPABLE     = [ Binding, IO, Proc, Class ].freeze
     DONT_SERIALIZE   = [ NilClass, Fixnum, Float, TrueClass, FalseClass ].freeze
@@ -50,6 +46,8 @@ class Sattr
 
       def dump_value(obj)
         case obj
+        when String
+          obj
         when Symbol
           obj.to_s
         when Bignum
@@ -93,7 +91,7 @@ class Sattr
 
       def load(priv)
         return priv if DONT_SERIALIZE.include?(priv.class)
-        raise InvalidArgument if priv.class != Array or priv.empty?
+        raise InvalidArgument, priv.inspect if priv.class != Array or priv.empty?
         objclass = get_class(priv.first)
 
         if objclass == Symbol
@@ -110,11 +108,8 @@ class Sattr
           raise InvalidArgument unless priv.last.class == objclass
         end
 
-        # TODO: allocate object immediatelly and add to cache
-        # even if ivars not present (but come later), error if two entries
-        # with same id and both with ivars
         if priv.length == 2
-          return fetch_obj(priv[1])
+          return build_and_cache_obj(objclass, priv[1])
         end
 
         if objclass == Array
@@ -128,8 +123,13 @@ class Sattr
           })
         end
 
+        if objclass == String
+          raise InvalidArgument if priv.last.class != String
+          return cache_obj(priv[1], priv[2])
+        end
+
         if priv.last.class != Hash
-          raise InvalidArgument
+          raise InvalidArgument, priv.last.inspect
         end
 
         return build_and_cache_obj(objclass, priv[1], priv[2])
@@ -137,19 +137,17 @@ class Sattr
 
       private
 
-      def fetch_obj(ref)
-        return @objs[ref] if @objs[ref]
-        raise InvalidArgument, "can't find object with reference id #{ref.to_s}"
+      def cache_has(ref)
+        @objs.key?(ref)
       end
 
-      def cache_obj(ref, obj)
-        return @objs[ref] = obj unless @objs[ref]
-        raise InvalidArgument, "an object with reference id #{ref.to_s} already exists"
+      def cache_obj(ref, obj=nil)
+        @objs[ref] ||= obj
       end
 
-      def build_and_cache_obj(objclass, ref, ivars)
+      def build_and_cache_obj(objclass, ref, ivars=[])
         # Cache first, only then go deeper, to avoid following circular references
-        obj = cache_obj(ref, objclass.allocate)
+        obj = cache_obj(ref, cache_has(ref) ? nil : objclass.allocate)
         ivars.each do |(var, val)|
           obj.instance_variable_set "@#{var}".to_sym, load(val)
         end
@@ -157,7 +155,7 @@ class Sattr
       end
 
       def get_class(id)
-        return OTHER_PRIMITIVES[id] if OTHER_PRIMITIVES[id]
+        return OTHER_PRIMITIVES[id] if id.class == Fixnum
         unless Object.constants.include?(id.to_sym) and objclass = Object.const_get(id) and objclass.class == Class
           raise InvalidArgument, "unknown class #{id.to_s}"
         end
@@ -166,20 +164,3 @@ class Sattr
     end
   end
 end
-
-begin
-  require "msgpack"
-rescue LoadError
-end
-
-class Foo
-  attr_accessor :x
-end
-
-f1 = Foo.new
-f2 = Foo.new
-f1.x = f2
-f2.x = f1
-
-require "pry"
-binding.pry
