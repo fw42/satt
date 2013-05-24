@@ -108,31 +108,43 @@ class Satt
           raise InvalidArgument unless priv.last.class == objclass
         end
 
-        if priv.length == 2
-          return build_and_cache_obj(objclass, priv[1])
+        ### BUG HERE!!!
+        ### Allocate first, return object. Later, set values
+        ### (special case for each of arrays, hashes, strings, objects)
+        if priv.length == 2 and cache_has(priv[1])
+          return cache_get(priv[1])
         end
 
+        obj = cache_has(priv[1]) ? cache_get(priv[1]) : cache_put(priv[1], objclass.allocate)
+
         if objclass == Array
-          return cache_obj(priv[1], priv[2].map{ |e| load(e) })
+          priv[2].each_with_index do |e,i|
+            obj[i] = load(e)
+          end
+          return obj
         end
 
         if objclass == Hash
-          return cache_obj(priv[1], priv[2].reduce(Hash.new) { |hash, (key, value)|
+          return priv[2].reduce(obj) { |hash, (key, value)|
             hash[load(key)] = load(value)
             hash
-          })
+          }
         end
 
         if objclass == String
           raise InvalidArgument if priv.last.class != String
-          return cache_obj(priv[1], priv[2])
+          ### BUG, this doesn't work
+          return obj[0..-1] = priv[2]
         end
 
         if priv.last.class != Hash
           raise InvalidArgument, priv.last.inspect
         end
 
-        return build_and_cache_obj(objclass, priv[1], priv[2])
+        ivars.each do |(var, val)|
+          obj.instance_variable_set "@#{var}".to_sym, load(val)
+        end
+        return obj
       end
 
       private
@@ -141,17 +153,12 @@ class Satt
         @objs.key?(ref)
       end
 
-      def cache_obj(ref, obj=nil)
-        @objs[ref] ||= obj
+      def cache_get(ref)
+        @objs[ref]
       end
 
-      def build_and_cache_obj(objclass, ref, ivars=[])
-        # Cache first, only then go deeper, to avoid following circular references
-        obj = cache_obj(ref, cache_has(ref) ? nil : objclass.allocate)
-        ivars.each do |(var, val)|
-          obj.instance_variable_set "@#{var}".to_sym, load(val)
-        end
-        return obj
+      def cache_put(ref, obj)
+        @objs[ref] = obj
       end
 
       def get_class(id)
