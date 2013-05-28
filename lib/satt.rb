@@ -16,7 +16,7 @@ class Satt
   class Primitive
     NOT_DUMPABLE     = [ Binding, IO, Proc, Class ].freeze
     DONT_SERIALIZE   = [ NilClass, Fixnum, Float, TrueClass, FalseClass ].freeze
-    OTHER_PRIMITIVES = [ Symbol, String, Array, Hash, Bignum ].freeze
+    OTHER_PRIMITIVES = [ Symbol, String, Array, Hash, Bignum, BigDecimal ].freeze
 
     class Dumper
       def initialize()
@@ -32,7 +32,7 @@ class Satt
         case obj
         when *DONT_SERIALIZE
           obj
-        when Symbol, Bignum
+        when Symbol, Bignum, BigDecimal
           [ class_identifier(obj), dump_value(obj) ]
         else
           id, cached = local_id(obj)
@@ -50,7 +50,7 @@ class Satt
           obj
         when Symbol
           obj.to_s
-        when Bignum
+        when Bignum, BigDecimal
           obj.to_s(16)
         when Array
           obj.map{ |e| dump(e) }
@@ -102,6 +102,11 @@ class Satt
         if objclass == Bignum
           raise InvalidArgument unless priv.length == 2 and priv.last.class == String
           return priv.last.to_i(16)
+        end
+
+        if objclass == BigDecimal
+          raise InvalidArgument unless priv.length == 2 and priv.last.class == String
+          return BigDecimal.new(priv.last)
         end
 
         if [Array, Hash].include?(objclass) and priv.length == 3

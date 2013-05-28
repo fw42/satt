@@ -19,7 +19,7 @@ Features
 * Ruby objects are encoded using only "primitive" objects which are supported by MessagePack.
 * Support for circular references and self-referential objects.
 * Instances of ```NilClass```, ```Fixnum```, ```Float```, ```TrueClass```, ```FalseClass```,
-  ```Symbol``` and ```Bignum``` are stored as value types. All other objects (including
+  ```Symbol```, ```Bignum``` and ```BigDecimal``` are stored as value types. All other objects (including
   instances of ```Array```, ```Hash```, ```String```) are encoded as reference types,
   meaning that if you serialize a structure with more than one reference to some instance
   of one of those types, the encoding will take note of that.
