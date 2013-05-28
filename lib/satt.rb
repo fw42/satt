@@ -4,11 +4,11 @@ class Satt
   class InvalidArgument < RuntimeError; end
 
   def self.dump(obj)
-    MessagePack.dump(Satt::Primitive::Dumper.new.dump(obj))
+    MessagePack.pack(Satt::Primitive::Dumper.new.dump(obj))
   end
 
   def self.load(blob)
-    Satt::Primitive::Loader.new.load(MessagePack.load(blob))
+    Satt::Primitive::Loader.new.load(MessagePack.unpack(blob))
   end
 end
 
@@ -141,7 +141,7 @@ class Satt
           raise InvalidArgument, priv.last.inspect
         end
 
-        ivars.each do |(var, val)|
+        priv[2].each do |(var, val)|
           obj.instance_variable_set "@#{var}".to_sym, load(val)
         end
         return obj

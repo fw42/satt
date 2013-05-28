@@ -3,11 +3,13 @@
 require 'benchmark'
 require 'yaml'
 require 'msgpack'
-require "satt"
+
+require File.expand_path("../lib/satt.rb", __FILE__)
+require File.expand_path("../test/examples.rb", __FILE__)
+
+obj = EXAMPLES
 
 algs = [ YAML, Marshal, Satt ]
-
-obj = {}
 
 SAMPLES = 5000
 
