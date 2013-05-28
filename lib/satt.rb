@@ -1,4 +1,11 @@
-require "msgpack"
+unless defined?(MessagePack)
+  require "msgpack"
+end
+
+unless defined?(BigDecimal)
+  class BigDecimal
+  end
+end
 
 class Satt
   class InvalidArgument < RuntimeError; end
@@ -164,8 +171,15 @@ class Satt
 
       def get_class(id)
         return OTHER_PRIMITIVES[id] if id.class == Fixnum
-        unless Object.constants.include?(id.to_sym) and objclass = Object.const_get(id) and objclass.class == Class
-          raise InvalidArgument, "unknown class #{id.to_s}"
+        path = id.split("::")
+        objclass = Object
+        while tmp = path.shift
+          unless objclass.constants.include?(tmp.to_sym) and
+            objclass = objclass.const_get(tmp) and
+            (objclass.class == Class or (path != [] and objclass.class == Module)) then
+            raise InvalidArgument, "unknown class #{id.to_s}"
+          end
+          objclass
         end
         objclass
       end

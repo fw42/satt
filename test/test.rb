@@ -10,6 +10,16 @@ end
 class Bla
 end
 
+module A
+  class B
+  end
+end
+
+class C
+  class D
+  end
+end
+
 class SattTest < MiniTest::Unit::TestCase
 
   def roundtrip(obj)
@@ -97,5 +107,13 @@ class SattTest < MiniTest::Unit::TestCase
     assert_raises Satt::InvalidArgument do
       Satt.load(blob)
     end
+  end
+
+  def test_nested_namespaces
+    b = A::B.new
+    d = C::D.new
+    y = roundtrip([ b, d ])
+    assert_equal A::B, y.first.class
+    assert_equal C::D, y.last.class
   end
 end
