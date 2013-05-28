@@ -108,9 +108,6 @@ class Satt
           raise InvalidArgument unless priv.last.class == objclass
         end
 
-        ### BUG HERE!!!
-        ### Allocate first, return object. Later, set values
-        ### (special case for each of arrays, hashes, strings, objects)
         if priv.length == 2 and cache_has(priv[1])
           return cache_get(priv[1])
         end
@@ -133,8 +130,7 @@ class Satt
 
         if objclass == String
           raise InvalidArgument if priv.last.class != String
-          ### BUG, this doesn't work
-          return obj[0..-1] = priv[2]
+          return obj.gsub!(/\A.*\z/, priv[2])
         end
 
         if priv.last.class != Hash

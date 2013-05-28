@@ -16,14 +16,14 @@ class SattTest < MiniTest::Unit::TestCase
     Satt.load(Satt.dump(obj))
   end
 
-  # def test_strings_hashes_and_arrays_are_stored_by_reference
-  #   objs = [ "foo", [ 1, 2, 3 ], { foo: 42 }]
-  #   objs.each do |obj|
-  #     x = [ obj, obj ]
-  #     y = roundtrip(x)
-  #     assert_equal y[0].__id__, y[1].__id__
-  #   end
-  # end
+  def test_strings_hashes_and_arrays_are_stored_by_reference
+    objs = [ "foo", [ 1, 2, 3 ], { foo: 42 }]
+    objs.each do |obj|
+      x = [ obj, obj ]
+      y = roundtrip(x)
+      assert_equal y[0].__id__, y[1].__id__
+    end
+  end
 
   def test_dump_returns_a_valid_msgpack_string
     y = Satt.dump("foo")
@@ -40,16 +40,14 @@ class SattTest < MiniTest::Unit::TestCase
 
   def test_some_primitive_examples
     EXAMPLES.each do |ex|
-      y = roundtrip(ex)
-      assert_equal y, ex
+      assert_equal ex, roundtrip(ex)
     end
   end
 
   def test_some_simple_objects_with_ivars
     foo = Foo.new
     foo.x = 42
-    y = roundtrip(foo)
-    assert_equal 42, y.x
+    assert_equal 42, roundtrip(foo).x
   end
 
   def test_self_referencing_hashes

@@ -1,2 +1,0 @@
-* If no ivars, don't store empty hash
-* Test with ActiveRecord
