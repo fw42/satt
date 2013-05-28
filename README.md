@@ -9,7 +9,7 @@ projects. I basically tried to reimplement the core features of Ruby Marshal.
 
 Usage
 -----
-* ```gem install satt```
+* ```gem install satt``` (https://rubygems.org/gems/satt)
 * ```require "satt"```
 * ```msg = Satt.dump(obj)```
 * ```obj = Satt.load(msg)```
