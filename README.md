@@ -26,6 +26,7 @@ Features
   Example: ```s = "foo"; arr = [ s, s ]```. If you serialize ```arr``` and load it again,
   the resulting array will contain that same ```String``` object twice (note that this
   behaviour is the same as with Ruby Marshal, but different as with JSON).
+* Support for ```_load()```, ```_dump()```, ```marshal_dump()``` and ```marshal_load()```.
 
 Shortcomings
 ------------

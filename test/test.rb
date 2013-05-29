@@ -20,8 +20,61 @@ class C
   end
 end
 
-class SattTest < MiniTest::Unit::TestCase
+module CustomMarshalA
+  attr_accessor :x, :y
 
+  def self.included(base)
+    base.extend ClassMethods
+  end
+
+  def marshal_dump
+    { x: 42, y: 23 }
+  end
+
+  module ClassMethods
+    def marshal_load(h)
+      x = new
+      x.x = h[:x]
+      x.y = h[:y]
+      return x
+    end
+  end
+end
+
+module CustomMarshalB
+  attr_accessor :x
+
+  def self.included(base)
+    base.extend ClassMethods
+  end
+
+  def _dump
+    1337
+  end
+
+  module ClassMethods
+    def _load(str)
+      x = new
+      x.x = str.to_i
+      return x
+    end
+  end
+end
+
+class CustomA
+  include CustomMarshalA
+end
+
+class CustomB
+  include CustomMarshalB
+end
+
+class CustomC
+  include CustomMarshalA
+  include CustomMarshalB
+end
+
+class SattTest < MiniTest::Unit::TestCase
   def roundtrip(obj)
     Satt.load(Satt.dump(obj))
   end
@@ -115,5 +168,27 @@ class SattTest < MiniTest::Unit::TestCase
     y = roundtrip([ b, d ])
     assert_equal A::B, y.first.class
     assert_equal C::D, y.last.class
+  end
+
+  def test_custom_marshal_dump_and_marshal_load
+    x = CustomA.new
+    x.x, x.y = 0, 0
+    y = roundtrip(x)
+    assert 42, y.x
+    assert 23, y.y
+  end
+
+  def test_custom_dump_and_load
+    x = CustomB.new
+    x.x = 42
+    y = roundtrip(x)
+    assert 1337, y.x
+  end
+
+  def test_marshal_dump_and_marshal_load_have_higher_precedence_than_custom_load_and_dump
+    x = CustomC.new
+    x.x = 0
+    y = roundtrip(x)
+    assert 42, y.x
   end
 end

@@ -36,6 +36,14 @@ class Satt
           raise InvalidArgument, "objects of type #{cl.to_s} are not dumpable" if obj.is_a?(cl)
         end
 
+        if obj.respond_to?(:marshal_dump)
+          return [ class_identifier(obj), dump(obj.marshal_dump) ]
+        end
+
+        if obj.respond_to?(:_dump)
+          return [ class_identifier(obj), obj._dump ]
+        end
+
         case obj
         when *DONT_SERIALIZE
           obj
@@ -100,6 +108,16 @@ class Satt
         return priv if DONT_SERIALIZE.include?(priv.class)
         raise InvalidArgument, priv.inspect if priv.class != Array or priv.empty?
         objclass = get_class(priv.first)
+
+        if objclass.respond_to?(:marshal_load)
+          raise InvalidArgument unless priv.length == 2
+          return objclass.marshal_load(load(priv.last))
+        end
+
+        if objclass.respond_to?(:_load)
+          raise InvalidArgument, priv.inspect unless priv.length == 2
+          return objclass._load(priv.last)
+        end
 
         if objclass == Symbol
           raise InvalidArgument unless priv.length == 2 and priv.last.class == String
